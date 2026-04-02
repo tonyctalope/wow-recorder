@@ -442,6 +442,7 @@ type CloudConfig = {
   cloudAccountName: string;
   cloudAccountPassword: string;
   cloudGuildName: string;
+  cloudServerUrl: string;
 };
 
 enum DeathMarkers {

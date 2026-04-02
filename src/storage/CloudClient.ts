@@ -132,21 +132,13 @@ export default class CloudClient implements StorageClient {
    * Production API: https://api.warcraftrecorder.com/api
    * Development API: https://warcraft-recorder-api-dev.alex-kershaw4.workers.dev/api
    */
-  private static api = 'https://api.warcraftrecorder.com/api';
+  private static defaultApi = 'https://api.warcraftrecorder.com/api';
+  private static defaultPoll = 'wss://api.warcraftrecorder.com/poll';
+  private static defaultWebsite = 'https://warcraftrecorder.com';
 
-  /**
-   * The polling websocket endpoint. This is used to get real-time updates
-   * from the WCR API in an efficient manner.
-   *
-   *  Production API: wss://api.warcraftrecorder.com/poll
-   *  Development API: wss://warcraft-recorder-api-dev.alex-kershaw4.workers.dev/poll
-   */
-  private static poll = 'wss://api.warcraftrecorder.com/poll';
-
-  /**
-   * The WCR website, used by the client to build shareable links.
-   */
-  private static website = 'https://warcraftrecorder.com';
+  private api = CloudClient.defaultApi;
+  private poll = CloudClient.defaultPoll;
+  private website = CloudClient.defaultWebsite;
 
   /**
    * If a file is larger than 4.995GB, we MUST use a multipart approach,
@@ -350,7 +342,7 @@ export default class CloudClient implements StorageClient {
     console.info('[CloudClient] Getting videos from cloud');
 
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/video`;
+    const url = `${this.api}/guild/${guild}/video`;
     const headers = { Authorization: this.authHeader };
 
     const statePromise = axios.get(url, {
@@ -379,7 +371,7 @@ export default class CloudClient implements StorageClient {
     console.info('[CloudClient] Attempt to delete', videoNames);
 
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/bulk/delete`;
+    const url = `${this.api}/guild/${guild}/bulk/delete`;
     const headers = { Authorization: this.authHeader };
 
     await axios.post(url, videoNames, {
@@ -400,7 +392,7 @@ export default class CloudClient implements StorageClient {
     );
 
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/bulk/protect`;
+    const url = `${this.api}/guild/${guild}/bulk/protect`;
     const headers = { Authorization: this.authHeader };
     const body = { videos: videoNames, protect: protect };
 
@@ -422,7 +414,7 @@ export default class CloudClient implements StorageClient {
     console.info('[CloudClient] Set tag', tag, 'on', videoNames);
 
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/bulk/tag`;
+    const url = `${this.api}/guild/${guild}/bulk/tag`;
     const headers = { Authorization: this.authHeader };
     const body = { videos: videoNames, tag };
 
@@ -469,13 +461,29 @@ export default class CloudClient implements StorageClient {
       cloudAccountPassword,
       cloudGuildName,
       cloudUpload,
+      cloudServerUrl,
     } = config;
+
+    // Configure custom server URL if provided
+    if (cloudServerUrl) {
+      const base = cloudServerUrl.replace(/\/+$/, '');
+      this.api = `${base}/api`;
+      const wsScheme = base.startsWith('https') ? 'wss' : 'ws';
+      const wsBase = base.replace(/^https?/, wsScheme);
+      this.poll = `${wsBase}/poll`;
+      this.website = base;
+    } else {
+      this.api = CloudClient.defaultApi;
+      this.poll = CloudClient.defaultPoll;
+      this.website = CloudClient.defaultWebsite;
+    }
 
     console.info('[CloudClient] Configure with:', {
       cloudStorage,
       cloudAccountName,
       cloudGuildName,
       cloudUpload,
+      api: this.api,
     });
 
     this.enabled = cloudStorage;
@@ -580,7 +588,7 @@ export default class CloudClient implements StorageClient {
     console.info('[CloudClient] Adding video to database', metadata.videoName);
 
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/video`;
+    const url = `${this.api}/guild/${guild}/video`;
     const headers = { Authorization: this.authHeader };
 
     await axios.post(url, metadata, {
@@ -620,7 +628,7 @@ export default class CloudClient implements StorageClient {
     const encGuild = encodeURIComponent(this.guild);
     const encKey = encodeURIComponent(key);
 
-    const sizeUrl = `${CloudClient.api}/guild/${encGuild}/video/${encKey}/size`;
+    const sizeUrl = `${this.api}/guild/${encGuild}/video/${encKey}/size`;
 
     const sizeRsp = await axios.get(sizeUrl, {
       headers,
@@ -663,7 +671,7 @@ export default class CloudClient implements StorageClient {
     const headers = { Authorization: this.authHeader };
     const guild = encodeURIComponent(this.guild);
 
-    const url = `${CloudClient.api}/guild/${guild}/upload`;
+    const url = `${this.api}/guild/${guild}/upload`;
     const body = { key, bytes };
 
     const response = await axios.post(url, body, {
@@ -688,7 +696,7 @@ export default class CloudClient implements StorageClient {
 
     const headers = { Authorization: this.authHeader };
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/create-multipart-upload`;
+    const url = `${this.api}/guild/${guild}/create-multipart-upload`;
 
     const body = {
       key,
@@ -713,7 +721,7 @@ export default class CloudClient implements StorageClient {
 
     const headers = { Authorization: this.authHeader };
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/complete-multipart-upload`;
+    const url = `${this.api}/guild/${guild}/complete-multipart-upload`;
 
     const body: CompleteMultiPartUploadRequestBody = {
       etags,
@@ -810,7 +818,7 @@ export default class CloudClient implements StorageClient {
     }
 
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.poll}?guild=${guild}`;
+    const url = `${this.poll}?guild=${guild}`;
     const headers = { Authorization: this.authHeader };
     this.ws = new WebSocket(url, { headers });
 
@@ -854,7 +862,7 @@ export default class CloudClient implements StorageClient {
 
     const headers = { Authorization: this.authHeader };
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/usage`;
+    const url = `${this.api}/guild/${guild}/usage`;
 
     const response = await axios.get(url, {
       headers,
@@ -874,7 +882,7 @@ export default class CloudClient implements StorageClient {
     console.info('[CloudClient] Get storage limit from API');
     const headers = { Authorization: this.authHeader };
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/limit`;
+    const url = `${this.api}/guild/${guild}/limit`;
 
     const response = await axios.get(url, {
       headers,
@@ -897,7 +905,7 @@ export default class CloudClient implements StorageClient {
     console.info('[CloudClient] Get user affiliations');
 
     const headers = { Authorization: this.authHeader };
-    const url = `${CloudClient.api}/user/affiliations`;
+    const url = `${this.api}/user/affiliations`;
 
     const cfg: AxiosRequestConfig = { headers };
 
@@ -922,7 +930,7 @@ export default class CloudClient implements StorageClient {
 
     const headers = { Authorization: this.authHeader };
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/housekeeper`;
+    const url = `${this.api}/guild/${guild}/housekeeper`;
 
     const response = await axios.post(url, undefined, {
       headers,
@@ -940,7 +948,7 @@ export default class CloudClient implements StorageClient {
   private async getMtime(): Promise<number> {
     const headers = { Authorization: this.authHeader };
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/mtime`;
+    const url = `${this.api}/guild/${guild}/mtime`;
 
     const response = await axios.get(url, {
       headers,
@@ -1237,7 +1245,7 @@ export default class CloudClient implements StorageClient {
 
     const guild = encodeURIComponent(this.guild);
     const video = encodeURIComponent(videoName);
-    const url = `${CloudClient.api}/guild/${guild}/video/${video}/link`;
+    const url = `${this.api}/guild/${guild}/video/${video}/link`;
     const headers = { Authorization: this.authHeader };
 
     const response = await axios.post(url, undefined, {
@@ -1247,7 +1255,7 @@ export default class CloudClient implements StorageClient {
 
     const { id } = response.data;
     console.info('[CloudClient] Got shareable link', videoName, id);
-    return `${CloudClient.website}/link/${id}`;
+    return `${this.website}/link/${id}`;
   }
 
   /**
@@ -1450,7 +1458,7 @@ export default class CloudClient implements StorageClient {
     // clips and manual we can't rely on the uniqueHash to actually be unique
     // so we have to build a unique name for the chat correlator.
     const guild = encodeURIComponent(this.guild);
-    let url = `${CloudClient.api}/guild/${guild}/`;
+    let url = `${this.api}/guild/${guild}/`;
 
     if (category === VideoCategory.Manual || category === VideoCategory.Clips) {
       let uniqueName = `${encodeURIComponent(videoName)} - ${duration.toFixed(2)}`;
@@ -1485,7 +1493,7 @@ export default class CloudClient implements StorageClient {
     );
 
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/chat/${correlator}`;
+    const url = `${this.api}/guild/${guild}/chat/${correlator}`;
     const headers = { Authorization: this.authHeader };
 
     const rsp = await axios.get(url, {
@@ -1513,7 +1521,7 @@ export default class CloudClient implements StorageClient {
     );
 
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/chat/${correlator}`;
+    const url = `${this.api}/guild/${guild}/chat/${correlator}`;
     const headers = { Authorization: this.authHeader };
     const body = { message };
 
@@ -1534,7 +1542,7 @@ export default class CloudClient implements StorageClient {
     console.info('[CloudClient] Deleting chat message with id', id);
 
     const guild = encodeURIComponent(this.guild);
-    const url = `${CloudClient.api}/guild/${guild}/chat/${id}`;
+    const url = `${this.api}/guild/${guild}/chat/${id}`;
     const headers = { Authorization: this.authHeader };
 
     await axios.delete(url, {

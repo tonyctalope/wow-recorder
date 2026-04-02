@@ -70,6 +70,7 @@ export type ConfigurationSchema = {
   cloudAccountName: string;
   cloudAccountPassword: string;
   cloudGuildName: string;
+  cloudServerUrl: string;
   cloudUpload2v2: boolean;
   cloudUpload3v3: boolean;
   cloudUpload5v5: boolean;
@@ -469,6 +470,11 @@ export const configSchema = {
     default: '',
   },
   cloudGuildName: {
+    description: Phrase.CloudGuildNameDescription,
+    type: 'string',
+    default: '',
+  },
+  cloudServerUrl: {
     description: Phrase.CloudGuildNameDescription,
     type: 'string',
     default: '',

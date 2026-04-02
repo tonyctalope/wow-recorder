@@ -252,6 +252,7 @@ const getCloudConfig = (): CloudConfig => {
     cloudAccountName: cfg.get<string>('cloudAccountName'),
     cloudAccountPassword: cfg.get<string>('cloudAccountPassword'),
     cloudGuildName: cfg.get<string>('cloudGuildName'),
+    cloudServerUrl: cfg.get<string>('cloudServerUrl'),
   };
 };
 

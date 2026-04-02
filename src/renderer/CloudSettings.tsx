@@ -66,6 +66,7 @@ const CloudSettings = (props: IProps) => {
         cloudAccountPassword: config.cloudAccountPassword,
         cloudGuildName: config.cloudGuildName,
         cloudUpload: config.cloudUpload,
+        cloudServerUrl: config.cloudServerUrl,
       });
 
       ipc.reconfigureCloud();
@@ -84,6 +85,7 @@ const CloudSettings = (props: IProps) => {
     config.cloudAccountPassword,
     config.cloudGuildName,
     config.cloudUpload,
+    config.cloudServerUrl,
   ]);
 
   useEffect(() => {
@@ -436,6 +438,44 @@ const CloudSettings = (props: IProps) => {
         <div className="flex h-10 items-center">
           {getSwitch('cloudUploadRateLimit', setCloudUploadRateLimit)}
         </div>
+      </div>
+    );
+  };
+
+  const setCloudServerUrl = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setConfig((prevState) => {
+      return {
+        ...prevState,
+        cloudServerUrl: event.target.value,
+      };
+    });
+  };
+
+  const getCloudServerUrlField = () => {
+    if (!config.cloudStorage) {
+      return <></>;
+    }
+
+    return (
+      <div className="flex flex-col w-1/4 min-w-60 max-w-80">
+        <Label htmlFor="cloudServerUrl" className="flex items-center">
+          Server URL (optional)
+          <Tooltip
+            content="Custom server URL for self-hosted WCR server. Leave empty to use the official server."
+            side="top"
+          >
+            <Info size={20} className="inline-flex ml-2" />
+          </Tooltip>
+        </Label>
+        <Input
+          name="cloudServerUrl"
+          value={config.cloudServerUrl}
+          onChange={setCloudServerUrl}
+          spellCheck={false}
+          placeholder="http://localhost:3000"
+        />
       </div>
     );
   };
@@ -812,6 +852,7 @@ const CloudSettings = (props: IProps) => {
       <>
         <div className="flex flex-row">{getCloudSwitch()}</div>
         <div className="flex flex-row gap-4 flex-wrap">
+          {getCloudServerUrlField()}
           {getCloudAccountNameField()}
           {getCloudAccountPasswordField()}
           {getCloudGuildField()}
